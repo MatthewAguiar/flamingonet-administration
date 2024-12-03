@@ -66,6 +66,7 @@ git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
 cd ..
 sudo mkdir -p /flamingonet/www
 sudo mv partdb /flamingonet/www
+cd /flamingonet/www/partdb
 
 # Make a copy of the .env file so we can configure Part-DB how we want it
 sudo cp "$script_dir/../partdb/.env" .env.local
