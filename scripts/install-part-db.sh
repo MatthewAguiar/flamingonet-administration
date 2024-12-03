@@ -20,6 +20,11 @@ set -euo pipefail
 # Record where this script was called from so we can cd back to it anytime
 script_dir=$(pwd)
 
+# PartDB requires PHP 8.4 but the Bookworm installation does not list it as
+# a package so we download the package and install it manually
+sudo wget -qO /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
+echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/php.list
+
 # Update the package registry
 sudo apt update
 
@@ -35,7 +40,7 @@ sudo apt install -y php8.4 libapache2-mod-php8.4 php8.4-opcache php8.4-curl php8
 # globally from source
 #
 wget -O /tmp/composer-setup.php https://getcomposer.org/installer
-php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
+sudo php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
 sudo chmod +x /usr/local/bin/composer
 
 # Install NodeJS as Part-DB uses yarn
@@ -47,17 +52,20 @@ curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | sudo tee /us
 echo "deb [signed-by=/usr/share/keyrings/yarnkey.gpg] https://dl.yarnpkg.com/debian stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
 
 # Install yarn
-sudo apt install yarn
+sudo apt install -y yarn
 
 # Download Part-DB into the new folder /flamingonet/www/partdb
-sudo mkdir -p /flamingonet/www
-sudo git clone https://github.com/Part-DB/Part-DB-symfony.git /flamingonet/www/partdb
-
-# Move into the Part-DB directory
-cd /flamingonet/www/partdb
+git clone https://github.com/Part-DB/Part-DB-symfony.git partdb
+cd partdb
 
 # This finds the latest release/tag and checks it out
+git config --global --add safe.directory /flamingonet/www/partdb
 git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
+
+# Move the web app into the flamingonet www directory
+cd ..
+sudo mkdir -p /flamingonet/www
+sudo mv partdb /flamingonet/www
 
 # Make a copy of the .env file so we can configure Part-DB how we want it
 sudo cp "$script_dir/../partdb/.env" .env.local
@@ -66,7 +74,7 @@ sudo cp "$script_dir/../partdb/.env" .env.local
 sudo -u www-data composer install --no-dev -o
 
 # Install yarn dependencies
-sudo yarn install
+sudo yarn install -y
 
 # Build frontend
 sudo yarn build
@@ -78,7 +86,7 @@ sudo -u www-data php bin/console cache:clear
 sudo -u www-data php bin/console partdb:check-requirements
 
 # Install Maria DB
-sudo apt install mariadb-server
+sudo apt install -y mariadb-server
 
 # Configure Maria DB
 # Follow the directions here to get through this part because it is interactive
