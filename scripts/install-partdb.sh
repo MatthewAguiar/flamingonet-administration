@@ -55,36 +55,32 @@ echo "deb [signed-by=/usr/share/keyrings/yarnkey.gpg] https://dl.yarnpkg.com/deb
 sudo apt install -y yarn
 
 # Download Part-DB into the new folder /flamingonet/www/partdb
+# Must use mv here so the current user is the owner of the repo
 git clone https://github.com/Part-DB/Part-DB-symfony.git partdb
 cd partdb
-
-# This finds the latest release/tag and checks it out
-git config --global --add safe.directory /flamingonet/www/partdb
 git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
-
-# Move the web app into the flamingonet www directory
 cd ..
 sudo mkdir -p /flamingonet/www
 sudo mv partdb /flamingonet/www
 cd /flamingonet/www/partdb
 
 # Make a copy of the .env file so we can configure Part-DB how we want it
-sudo cp "$script_dir/../partdb/.env" .env.local
+sudo -u $USER cp "$script_dir/../partdb/.env" .env.local
 
-# Install composer dependencies (please note the sudo command, to run it under the web server user)
-sudo -u www-data composer install --no-dev -o
+# Install composer dependencies
+composer install --no-dev -o
 
 # Install yarn dependencies
-sudo yarn install -y
+yarn install -y
 
 # Build frontend
-sudo yarn build
+yarn build
 
 # To ensure everything is working, clear the cache:
-sudo -u www-data php bin/console cache:clear
+php bin/console cache:clear
 
 # Check if everything is installed, run the following command:
-sudo -u www-data php bin/console partdb:check-requirements
+php bin/console partdb:check-requirements
 
 # Install Maria DB
 sudo apt install -y mariadb-server
@@ -92,17 +88,19 @@ sudo apt install -y mariadb-server
 # Configure Maria DB
 # Follow the directions here to get through this part because it is interactive
 # https://docs.part-db.de/installation/installation_guide-debian.html#mysqlmariadb-database
+echo "Running mysql_secure_installation..."
+echo -e "Please refer to the instructions here: https://docs.part-db.de/installation/installation_guide-debian.html#mysqlmariadb-database\n"
 sudo mysql_secure_installation
 
-# Update the database schema with:
-sudo -u www-data php bin/console doctrine:migrations:migrate
+# Update the database schema with the following command
+php bin/console doctrine:migrations:migrate
 
 # Copy the partdb.conf file to the sites-available directory to make it available for Apache
 cd "$script_dir"
-sudo cp ../partdb/partdb.conf /etc/apache2/sites-available/partdb.conf
+sudo -u $USER cp ../partdb/partdb.conf /etc/apache2/sites-available/partdb.conf
 
 # Activate the new site by
-sudo ln -s /etc/apache2/sites-available/partdb.conf /etc/apache2/sites-enabled/partdb.conf
+sudo -u $USER ln -s /etc/apache2/sites-available/partdb.conf /etc/apache2/sites-enabled/partdb.conf
 
 # Configure Apache to show pretty URL paths for Part-DB (/label/dialog instead of /index.php/label/dialog):
 sudo a2enmod rewrite
@@ -112,5 +110,7 @@ sudo service apache2 restart
 
 # Enable SSL for Part-DB
 # See last chapter of this video for SSL: https://www.youtube.com/watch?v=VXSgEvZKp-8
+echo "Enabling SSL for Part-DB..."
+echo -e "Please refer to the instructions here: https://www.youtube.com/watch?v=VXSgEvZKp-8\n"
 sudo apt install -y certbot python3-certbot-apache
 sudo certbot --apache -d flamingonet.io
