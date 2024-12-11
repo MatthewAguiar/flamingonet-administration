@@ -68,6 +68,15 @@ cd /flamingonet/www/partdb
 sudo cp "$script_dir/../partdb/.env" .env.local
 sudo chown -R www-data:www-data .
 
+# Install composer dependencies
+sudo -u www-data composer install --no-dev -o || true
+
+# Install yarn dependencies
+yarn install -y
+
+# Build frontend
+yarn build
+
 # Install Maria DB
 sudo apt install -y mariadb-server
 
@@ -87,15 +96,6 @@ initial_password=$(sudo -u www-data php bin/console doctrine:migrations:migrate 
 
 # Putting this in brackets to catch any errors and still output the initial password
 {
-
-  # Install composer dependencies
-  sudo -u www-data composer install --no-dev -o
-
-  # Install yarn dependencies
-  yarn install -y
-
-  # Build frontend
-  yarn build
 
   # To ensure everything is working, clear the cache:
   sudo -u www-data php bin/console cache:clear
