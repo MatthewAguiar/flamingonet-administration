@@ -53,6 +53,21 @@ echo "deb [signed-by=/usr/share/keyrings/yarnkey.gpg] https://dl.yarnpkg.com/deb
 # Install yarn
 sudo apt update && sudo apt install -y yarn
 
+# Download Part-DB into the new folder /flamingonet/www/partdb
+# Must use mv here so the current user is the owner of the repo
+git clone https://github.com/Part-DB/Part-DB-symfony.git partdb
+cd partdb
+git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
+cd ..
+sudo mkdir -p /flamingonet/www
+sudo mv partdb /flamingonet/www
+cd /flamingonet/www/partdb
+
+# Make a copy of the .env file so we can configure Part-DB how we want it
+# Set the owner to be www-data which is the apache user
+sudo cp "$script_dir/../partdb/.env" .env.local
+sudo chown -R www-data:www-data .
+
 # Install Maria DB
 sudo apt install -y mariadb-server
 
@@ -73,21 +88,6 @@ initial_password=$(sudo -u www-data php bin/console doctrine:migrations:migrate 
 # Putting this in brackets to catch any errors and still output the initial password
 {
 
-  # Download Part-DB into the new folder /flamingonet/www/partdb
-  # Must use mv here so the current user is the owner of the repo
-  git clone https://github.com/Part-DB/Part-DB-symfony.git partdb
-  cd partdb
-  git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
-  cd ..
-  sudo mkdir -p /flamingonet/www
-  sudo mv partdb /flamingonet/www
-  cd /flamingonet/www/partdb
-
-  # Make a copy of the .env file so we can configure Part-DB how we want it
-  # Set the owner to be www-data which is the apache user
-  sudo cp "$script_dir/../partdb/.env" .env.local
-  sudo chown -R www-data:www-data .
-
   # Install composer dependencies
   sudo -u www-data composer install --no-dev -o
 
@@ -98,10 +98,10 @@ initial_password=$(sudo -u www-data php bin/console doctrine:migrations:migrate 
   yarn build
 
   # To ensure everything is working, clear the cache:
-  php bin/console cache:clear
+  sudo -u www-data php bin/console cache:clear
 
   # Check if everything is installed, run the following command:
-  php bin/console partdb:check-requirements
+  sudo -u www-data php bin/console partdb:check-requirements
 
   # Copy the partdb.conf file to the sites-available directory to make it available for Apache
   cd "$script_dir"
