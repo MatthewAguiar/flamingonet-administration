@@ -55,12 +55,14 @@ sudo apt update && sudo apt install -y yarn
 
 # Download Part-DB into the new folder /flamingonet/www/partdb
 # Must use mv here so the current user is the owner of the repo
-git clone https://github.com/Part-DB/Part-DB-symfony.git partdb
+sudo mkdir -p /flamingonet/www
+cd /flamingonet/www
+sudo git clone https://github.com/Part-DB/Part-DB-symfony.git partdb
 cd partdb
-git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
+sudo git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
 
 # Make a copy of the .env file so we can configure Part-DB how we want it
-cp ../../partdb/.env .env.local
+sudo cp "$script_dir/../partdb/.env" .env.local
 
 # Transfer ownership of all files to the www-data user
 sudo chown -R www-data:www-data .
@@ -75,10 +77,6 @@ yarn install -y
 yarn build
 
 # Move the partdb folder to /flamingonet/www
-cd ..
-sudo mkdir -p /flamingonet/www
-sudo mv partdb /flamingonet/www
-cd /flamingonet/www/partdb
 
 # Install Maria DB
 sudo apt install -y mariadb-server
