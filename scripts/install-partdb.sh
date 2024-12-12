@@ -68,15 +68,19 @@ sudo cp "$script_dir/../partdb/.env" .env.local
 sudo chown -R www-data:www-data .
 
 # Install composer dependencies
-sudo -u www-data composer install --no-dev --no-scripts -o
+sudo -u www-data composer install --no-dev -o
 
 # Install yarn dependencies
-yarn install -y
+sudo yarn install -y
 
 # Build frontend
-yarn build
+sudo yarn build
 
-# Move the partdb folder to /flamingonet/www
+# To ensure everything is working, clear the cache:
+sudo -u www-data php bin/console cache:clear
+
+# Check if everything is installed, run the following command:
+sudo -u www-data php bin/console partdb:check-requirements
 
 # Install Maria DB
 sudo apt install -y mariadb-server
@@ -97,12 +101,6 @@ initial_password=$(sudo -u www-data php bin/console doctrine:migrations:migrate 
 
 # Putting this in brackets to catch any errors and still output the initial password
 {
-
-  # To ensure everything is working, clear the cache:
-  sudo -u www-data php bin/console cache:clear
-
-  # Check if everything is installed, run the following command:
-  sudo -u www-data php bin/console partdb:check-requirements
 
   # Copy the partdb.conf file to the sites-available directory to make it available for Apache
   cd "$script_dir"
