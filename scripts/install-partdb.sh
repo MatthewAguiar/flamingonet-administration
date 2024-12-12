@@ -62,17 +62,17 @@ git checkout $(git describe --tags $(git rev-list --tags --max-count=1))
 # Make a copy of the .env file so we can configure Part-DB how we want it
 cp ../../partdb/.env .env.local
 
+# Transfer ownership of all files to the www-data user
+sudo chown -R www-data:www-data .
+
 # Install composer dependencies
-composer install --no-dev -o || true
+sudo -u www-data composer install --no-dev --no-scripts -o
 
 # Install yarn dependencies
 yarn install -y
 
 # Build frontend
 yarn build
-
-# Transfer ownership of all files to the www-data user
-sudo chown -R www-data:www-data .
 
 # Move the partdb folder to /flamingonet/www
 cd ..
